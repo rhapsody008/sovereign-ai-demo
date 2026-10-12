@@ -160,6 +160,7 @@ $("set-form").addEventListener("submit", async (ev) => {
 function setPhoto(blob) {
   photoBlob = blob;
   if (blob) {
+    $("cam-error").hidden = true;
     $("preview-img").src = URL.createObjectURL(blob);
     $("preview").hidden = false;
   } else {
@@ -168,39 +169,117 @@ function setPhoto(blob) {
   }
 }
 
+let camFacing = "environment";
+let capturedBlob = null;
+
 function stopCamera() {
   if (camStream) camStream.getTracks().forEach((t) => t.stop());
   camStream = null;
   $("camera").hidden = true;
+  document.body.style.overflow = "";
 }
 
-// Phones/tablets: open the device's own camera app via the capture input.
-// Laptops: browsers can't launch a camera app, so show a live preview instead.
-const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
+function showCamError(msg) {
+  $("cam-error-msg").textContent = msg;
+  $("cam-error").hidden = false;
+}
 
-$("btn-photo").addEventListener("click", async () => {
-  if (isTouchDevice || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    $("file-input").click();
+function camErrorMessage(err) {
+  if (!window.isSecureContext) {
+    return `Chrome only allows the camera on HTTPS or localhost. This page is open on ${location.origin}. ` +
+      "Open it over HTTPS (or via localhost) to take photos.";
+  }
+  switch (err && err.name) {
+    case "NotAllowedError":
+    case "SecurityError":
+      return "Camera permission is blocked. Click the camera icon in the address bar, allow access, then try again.";
+    case "NotFoundError":
+    case "OverconstrainedError":
+      return "No camera was found on this device.";
+    case "NotReadableError":
+      return "The camera is in use by another app (e.g. Zoom or Teams). Close it and try again.";
+  }
+  return "Could not start the camera" + (err && err.message ? ": " + err.message : ".");
+}
+
+// Live view state: video + shutter. Review state: still image + Retake / Use photo.
+function setCamMode(review) {
+  $("cam-video").hidden = review;
+  $("cam-still").hidden = !review;
+  $("btn-capture").style.visibility = review ? "hidden" : "visible";
+  $("btn-retake").hidden = !review;
+  $("btn-use").hidden = !review;
+  $("btn-cam-switch").hidden = review || !$("btn-cam-switch").dataset.multi;
+}
+
+async function startStream() {
+  if (camStream) camStream.getTracks().forEach((t) => t.stop());
+  camStream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: { ideal: camFacing }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+    audio: false,
+  });
+  $("cam-video").srcObject = camStream;
+  const cams = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === "videoinput");
+  $("btn-cam-switch").dataset.multi = cams.length > 1 ? "1" : "";
+}
+
+async function openCamera() {
+  $("cam-error").hidden = true;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    showCamError(camErrorMessage(null));
     return;
   }
   try {
-    camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-    $("cam-video").srcObject = camStream;
-    $("camera").hidden = false;
-  } catch {
-    $("file-input").click();
+    await startStream();
+  } catch (err) {
+    showCamError(camErrorMessage(err));
+    return;
   }
+  capturedBlob = null;
+  setCamMode(false);
+  $("camera").hidden = false;
+  document.body.style.overflow = "hidden";
+}
+
+// Phones/tablets: the capture input opens the device's camera app directly.
+// Laptops/desktops: open the camera full-screen in the page.
+const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
+
+$("btn-photo").addEventListener("click", () => {
+  if (isTouchDevice) $("file-input").click();
+  else openCamera();
 });
+$("btn-file").addEventListener("click", () => $("file-input").click());
 
 $("btn-capture").addEventListener("click", () => {
   const v = $("cam-video");
+  if (!v.videoWidth) return;
   const canvas = document.createElement("canvas");
   canvas.width = v.videoWidth;
   canvas.height = v.videoHeight;
   canvas.getContext("2d").drawImage(v, 0, 0);
-  canvas.toBlob((b) => { setPhoto(b); stopCamera(); }, "image/jpeg", 0.9);
+  const cam = $("camera");
+  cam.classList.remove("flash");
+  void cam.offsetWidth; // restart the flash animation
+  cam.classList.add("flash");
+  canvas.toBlob((b) => {
+    capturedBlob = b;
+    $("cam-still").src = URL.createObjectURL(b);
+    setCamMode(true);
+  }, "image/jpeg", 0.92);
+});
+$("btn-retake").addEventListener("click", () => { capturedBlob = null; setCamMode(false); });
+$("btn-use").addEventListener("click", () => { setPhoto(capturedBlob); stopCamera(); });
+$("btn-cam-switch").addEventListener("click", async () => {
+  camFacing = camFacing === "environment" ? "user" : "environment";
+  try { await startStream(); } catch (err) { stopCamera(); showCamError(camErrorMessage(err)); }
 });
 $("btn-cam-cancel").addEventListener("click", stopCamera);
+document.addEventListener("keydown", (ev) => {
+  if ($("camera").hidden) return;
+  if (ev.key === "Escape") stopCamera();
+  if ((ev.key === " " || ev.key === "Enter") && !$("cam-video").hidden) { ev.preventDefault(); $("btn-capture").click(); }
+});
 $("btn-remove").addEventListener("click", () => setPhoto(null));
 $("file-input").addEventListener("change", (ev) => {
   const f = ev.target.files[0];

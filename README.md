@@ -58,12 +58,12 @@ Without Docker: `make mock` in one shell, then `make run` in another. With no `S
 
 ## Failover rehearsal
 
-1. `make up`, open :8080 (primary), file a record. Use a photo too: "Take photo" uses a live camera preview on a laptop and the camera app on a phone or tablet.
+1. `make up`, open :8080 (primary), file a record. Use a photo too: "Take photo" opens a full-screen camera on a laptop and the camera app on a phone or tablet.
 2. Open :8081. The same record is listed with the `nkp-primary` tag.
 3. `docker compose -f deploy/local/docker-compose.yaml stop app`. Reload :8081. It still lists the records, files new ones, and tags them `nkp-standby`.
 
 On NKP, the camera needs HTTPS at the ingress, because `getUserMedia` requires a secure context.
-Without HTTPS, "Take photo" falls back to a file picker on laptops.
+Over plain `http://<IP>`, Chrome blocks the camera and the page explains why (a file picker is still offered).
 
 ## Configuration
 

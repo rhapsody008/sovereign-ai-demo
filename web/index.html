@@ -73,18 +73,15 @@
         <button type="button" class="link" data-sample="Quarterly town hall moved to Thursday 3pm in the main auditorium.">no PII</button>
       </div>
 
-      <div id="camera" class="camera" hidden>
-        <video id="cam-video" autoplay playsinline muted></video>
-        <div class="row">
-          <button type="button" id="btn-capture">Capture</button>
-          <button type="button" id="btn-cam-cancel" class="secondary">Cancel</button>
-        </div>
-      </div>
       <div id="preview" class="preview" hidden>
         <img id="preview-img" alt="Captured photo preview">
         <button type="button" id="btn-remove" class="secondary small">Remove photo</button>
       </div>
       <input id="file-input" type="file" accept="image/*" capture="environment" hidden>
+      <div id="cam-error" class="cam-error" hidden>
+        <div id="cam-error-msg"></div>
+        <button type="button" id="btn-file" class="link">Choose an image file instead</button>
+      </div>
 
       <div class="row">
         <button type="button" id="btn-photo" class="secondary">📷 Take photo</button>
@@ -101,6 +98,28 @@
     </section>
   </div>
 </main>
+
+<div id="camera" class="camera" hidden role="dialog" aria-label="Camera">
+  <div class="cam-top">
+    <span class="cam-title"><span class="rec-dot"></span>Camera</span>
+    <button type="button" id="btn-cam-cancel" class="cam-close" aria-label="Close camera">✕</button>
+  </div>
+  <div class="cam-stage">
+    <video id="cam-video" autoplay playsinline muted></video>
+    <img id="cam-still" alt="Captured photo" hidden>
+    <div class="cam-frame"></div>
+  </div>
+  <div class="cam-controls">
+    <div class="cam-left">
+      <button type="button" id="btn-cam-switch" class="cam-side" hidden>⟲ Switch camera</button>
+      <button type="button" id="btn-retake" class="cam-side" hidden>Retake</button>
+    </div>
+    <button type="button" id="btn-capture" class="shutter" aria-label="Take photo"></button>
+    <div class="cam-right">
+      <button type="button" id="btn-use" class="primary" hidden>Use photo</button>
+    </div>
+  </div>
+</div>
 
 <footer><span id="version"></span></footer>
 <script src="/static/app.js"></script>
