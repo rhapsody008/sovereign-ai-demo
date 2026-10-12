@@ -23,7 +23,7 @@ docker-build:
 
 up:
 	$(COMPOSE) up -d --build
-	@echo "primary: http://localhost:8080  standby: http://localhost:8081  s3: http://localhost:8333"
+	@echo "primary: http://localhost:8080/piishield/  standby: http://localhost:8081/piishield/  s3: http://localhost:8333"
 
 down:
 	$(COMPOSE) down -v
@@ -32,4 +32,4 @@ logs:
 	$(COMPOSE) logs -f app app-standby
 
 seed: ## file a demo record through the API (uses the configured NAI)
-	curl -s -XPOST http://localhost:8080/api/intake -F 'text=This is Zhou Yi with email yi.zhou@nutanix.com. File this.'; echo
+	curl -s -XPOST http://localhost:8080/piishield/api/intake -F 'text=This is Zhou Yi with email yi.zhou@nutanix.com. File this.'; echo

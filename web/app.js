@@ -38,7 +38,7 @@ function setTile(id, state, main, sub) {
 
 async function pollStatus() {
   try {
-    const s = await api("/api/status");
+    const s = await api("api/status");
     const c = s.connection;
     const banner = $("banner");
     banner.className = "banner " + (c.bannerColor === "orange" ? "orange" : "blue");
@@ -86,7 +86,7 @@ async function pollStatus() {
 
 async function loadSettings() {
   try {
-    const s = await api("/api/settings/nai");
+    const s = await api("api/settings/nai");
     $("set-url").value = s.baseUrl || "";
     $("set-key").placeholder = s.hasKey ? `saved key ${s.keyHint} — leave blank to keep` : "API key";
     const sel = $("set-model");
@@ -114,7 +114,7 @@ $("btn-test").addEventListener("click", async () => {
   btn.disabled = true;
   setMsg("Testing…");
   try {
-    const r = await api("/api/settings/nai/test", {
+    const r = await api("api/settings/nai/test", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: settingsBody(),
     });
     if (!r.ok) { setMsg(r.error, "err"); return; }
@@ -134,7 +134,7 @@ $("set-form").addEventListener("submit", async (ev) => {
   const save = async () => {
     const headers = { "Content-Type": "application/json" };
     if (adminToken) headers["X-Admin-Token"] = adminToken;
-    return api("/api/settings/nai", { method: "PUT", headers, body: settingsBody() });
+    return api("api/settings/nai", { method: "PUT", headers, body: settingsBody() });
   };
   try {
     let r;
@@ -338,7 +338,7 @@ $("btn-scan").addEventListener("click", async () => {
   $("spinner").hidden = false;
   $("result").hidden = true;
   try {
-    const r = await api("/api/intake", { method: "POST", body: fd });
+    const r = await api("api/intake", { method: "POST", body: fd });
     renderResult(r);
     if (r.status !== "blocked") {
       $("in-text").value = "";
@@ -366,7 +366,7 @@ function renderError(msg) {
 async function loadRecords() {
   let recs;
   try {
-    recs = await api("/api/records?limit=50");
+    recs = await api("api/records?limit=50");
   } catch (e) {
     return; // storage tile shows the error
   }
@@ -381,7 +381,7 @@ async function loadRecords() {
     if (!firstRecordsLoad && !lastRecordIds.has(r.id)) li.classList.add("new");
     if (r.hasPhoto) {
       const img = el("img");
-      img.src = `/api/records/${encodeURIComponent(r.id)}/thumb`;
+      img.src = `api/records/${encodeURIComponent(r.id)}/thumb`;
       img.alt = "Blurred photo thumbnail";
       img.loading = "lazy";
       li.append(img);

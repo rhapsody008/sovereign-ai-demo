@@ -12,6 +12,7 @@ import (
 
 type Config struct {
 	ListenAddr string
+	BasePath   string // URL prefix the app is served under, e.g. "/piishield"; "" for root
 
 	ClusterName        string
 	ClusterDisplayName string
@@ -67,6 +68,10 @@ func Load() (*Config, error) {
 		AdminToken: env("ADMIN_TOKEN", ""),
 	}
 	c.ClusterDisplayName = env("CLUSTER_DISPLAY_NAME", c.ClusterName)
+	c.BasePath = "/" + strings.Trim(env("BASE_PATH", "/piishield"), "/")
+	if c.BasePath == "/" {
+		c.BasePath = ""
+	}
 
 	var errs []error
 	if c.ClusterRole != "primary" && c.ClusterRole != "standby" {

@@ -36,8 +36,8 @@ Env vars `NAI_*` are only a fallback for when nothing has been saved yet.
 
 ```sh
 make up        # SeaweedFS (S3) + mock NAI + primary :8080 + standby :8081
-open http://localhost:8080   # blue banner, primary
-open http://localhost:8081   # orange banner, standby
+open http://localhost:8080/piishield/   # blue banner, primary
+open http://localhost:8081/piishield/   # orange banner, standby
 make down
 ```
 
@@ -71,6 +71,7 @@ See [.env.example](.env.example) for every variable. The main ones:
 
 | Var | Default | Notes |
 |---|---|---|
+| `BASE_PATH` | `/piishield` | The UI and API are served only under this prefix, and other paths return 404. `/healthz` and `/readyz` also stay at the root for probes. Set it to `/` to serve at the root |
 | `CLUSTER_NAME` / `CLUSTER_DISPLAY_NAME` | `local` | Shown in the banner and stored on each record |
 | `CLUSTER_ROLE` | `primary` | `standby` turns the banner orange |
 | `POD_NAME`, `NODE_NAME`, `POD_NAMESPACE` | hostname | Set them with the Downward API |
@@ -101,6 +102,8 @@ GHCR packages are **private by default**. Make them public in the package settin
 `imagePullSecret` on both NKP clusters.
 
 ## API
+
+All paths below are under `BASE_PATH` (default `/piishield`), e.g. `/piishield/api/status`.
 
 `GET /api/status` · `GET|PUT /api/settings/nai` · `POST /api/settings/nai/test` · `POST /api/intake` (multipart
 `text`, `photo`) · `GET /api/records?limit=50` · `GET /api/records/{id}/thumb` · `GET /healthz` · `GET /readyz`.

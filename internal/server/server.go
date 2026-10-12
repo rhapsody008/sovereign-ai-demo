@@ -55,7 +55,18 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/intake", s.handleIntake)
 	mux.HandleFunc("GET /api/records", s.handleRecords)
 	mux.HandleFunc("GET /api/records/{id}/thumb", s.handleThumb)
-	return s.logRequests(mux)
+
+	base := s.cfg.BasePath
+	if base == "" {
+		return s.logRequests(mux)
+	}
+	// Serve the app only under the prefix; everything else is 404, except the
+	// health endpoints, which stay at the root for Kubernetes probes.
+	root := http.NewServeMux()
+	root.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { _, _ = io.WriteString(w, "ok") })
+	root.HandleFunc("GET /readyz", s.handleReady)
+	root.Handle(base+"/", http.StripPrefix(base, mux)) // ServeMux redirects base → base/
+	return s.logRequests(root)
 }
 
 func (s *Server) logRequests(next http.Handler) http.Handler {
@@ -63,7 +74,7 @@ func (s *Server) logRequests(next http.Handler) http.Handler {
 		start := time.Now()
 		sw := &statusWriter{ResponseWriter: w, code: 200}
 		next.ServeHTTP(sw, r)
-		if r.URL.Path == "/api/status" || r.URL.Path == "/healthz" || r.URL.Path == "/readyz" {
+		if p := r.URL.Path; strings.HasSuffix(p, "/api/status") || strings.HasSuffix(p, "/healthz") || strings.HasSuffix(p, "/readyz") {
 			return // polled constantly; keep logs readable
 		}
 		s.log.Info("http", "method", r.Method, "path", r.URL.Path, "code", sw.code, "ms", time.Since(start).Milliseconds())
