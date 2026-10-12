@@ -11,7 +11,7 @@
 <header id="banner" class="banner blue">
   <div class="banner-main">
     <div>
-      <h1>Secure Intake · PII Shield</h1>
+      <h1>Secure Intake · <span class="shield">PII Shield</span></h1>
       <p class="sub">AI runs on our own NAI endpoint. No data leaves this environment.</p>
     </div>
     <div class="conn">
@@ -35,14 +35,14 @@
       <div class="tile-sub" id="nai-sub"></div>
     </div>
     <div class="tile" id="tile-storage">
-      <div class="tile-head"><span class="dot"></span>Storage · Nutanix Objects</div>
+      <div class="tile-head"><span class="dot"></span>Storage on Nutanix Cloud Infrastructure</div>
       <div class="tile-main" id="st-main">—</div>
       <div class="tile-sub" id="st-sub"></div>
     </div>
   </section>
 
   <details class="card settings" id="settings">
-    <summary>NAI endpoint settings <span class="badge" id="set-source"></span></summary>
+    <summary>NAI endpoint settings</summary>
     <form id="set-form" autocomplete="off">
       <label>Endpoint URL
         <input id="set-url" type="url" placeholder="https://nai.example.local/api/v1" required>
@@ -81,13 +81,13 @@
         </div>
       </div>
       <div id="preview" class="preview" hidden>
-        <img id="preview-img" alt="Attached photo preview">
+        <img id="preview-img" alt="Captured photo preview">
         <button type="button" id="btn-remove" class="secondary small">Remove photo</button>
       </div>
       <input id="file-input" type="file" accept="image/*" capture="environment" hidden>
 
       <div class="row">
-        <button type="button" id="btn-photo" class="secondary">📷 Attach photo</button>
+        <button type="button" id="btn-photo" class="secondary">📷 Take photo</button>
         <button type="button" id="btn-scan" class="primary">Scan and file</button>
         <span id="spinner" class="spinner" hidden>Scanning on NAI…</span>
       </div>

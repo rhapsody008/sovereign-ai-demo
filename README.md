@@ -58,12 +58,12 @@ Without Docker: `make mock` in one shell, then `make run` in another. With no `S
 
 ## Failover rehearsal
 
-1. `make up`, open :8080 (primary), file a record. Use a photo too: the camera works on `localhost`.
+1. `make up`, open :8080 (primary), file a record. Use a photo too: "Take photo" uses a live camera preview on a laptop and the camera app on a phone or tablet.
 2. Open :8081. The same record is listed with the `nkp-primary` tag.
 3. `docker compose -f deploy/local/docker-compose.yaml stop app`. Reload :8081. It still lists the records, files new ones, and tags them `nkp-standby`.
 
 On NKP, the camera needs HTTPS at the ingress, because `getUserMedia` requires a secure context.
-Without HTTPS, "Attach photo" falls back to a file picker.
+Without HTTPS, "Take photo" falls back to a file picker on laptops.
 
 ## Configuration
 
@@ -105,3 +105,9 @@ GHCR packages are **private by default**. Make them public in the package settin
 `GET /api/status` · `GET|PUT /api/settings/nai` · `POST /api/settings/nai/test` · `POST /api/intake` (multipart
 `text`, `photo`) · `GET /api/records?limit=50` · `GET /api/records/{id}/thumb` · `GET /healthz` · `GET /readyz`.
 The API never returns the full API key, and no endpoint serves the original photo.
+
+## Fonts
+
+The UI bundles [Space Grotesk](https://github.com/floriankarsten/space-grotesk) and
+[JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) (both SIL Open Font License 1.1) in `web/fonts/`,
+so it needs no external CDN and works air-gapped.

@@ -70,7 +70,7 @@ async function pollStatus() {
     const st = s.storage;
     if (st.reachable) {
       setTile("tile-storage", "ok", `${st.recordCount} records`,
-        st.backend === "objects" ? `bucket ${st.bucket} · ${st.latencyMs} ms` : "in-memory (local only)");
+        st.backend === "objects" ? `Reachable · ${st.latencyMs} ms` : "In-memory (local only)");
     } else {
       setTile("tile-storage", "err", "Unreachable", st.error);
     }
@@ -89,7 +89,6 @@ async function loadSettings() {
     const s = await api("/api/settings/nai");
     $("set-url").value = s.baseUrl || "";
     $("set-key").placeholder = s.hasKey ? `saved key ${s.keyHint} — leave blank to keep` : "API key";
-    $("set-source").textContent = s.source === "none" ? "not configured" : "from " + s.source;
     const sel = $("set-model");
     if (s.model && ![...sel.options].some((o) => o.value === s.model)) {
       sel.replaceChildren(new Option(s.model, s.model, true, true));
@@ -148,7 +147,7 @@ $("set-form").addEventListener("submit", async (ev) => {
       r = await save();
     }
     $("set-key").value = "";
-    setMsg(`Saved to ${r.source} · shared by all clusters`, "ok");
+    setMsg("Saved", "ok");
     loadSettings();
     pollStatus();
   } catch (e) {
@@ -175,8 +174,12 @@ function stopCamera() {
   $("camera").hidden = true;
 }
 
+// Phones/tablets: open the device's own camera app via the capture input.
+// Laptops: browsers can't launch a camera app, so show a live preview instead.
+const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
+
 $("btn-photo").addEventListener("click", async () => {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+  if (isTouchDevice || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     $("file-input").click();
     return;
   }
