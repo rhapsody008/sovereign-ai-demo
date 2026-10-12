@@ -22,7 +22,8 @@ USER nonroot
 EXPOSE 9090
 ENTRYPOINT ["/mocknai"]
 
-FROM gcr.io/distroless/static-debian12:nonroot AS app
+# debug-nonroot = distroless + busybox, so `kubectl exec -it <pod> -- /busybox/sh` works.
+FROM gcr.io/distroless/static-debian12:debug-nonroot AS app
 ARG VERSION=dev
 LABEL org.opencontainers.image.source=https://github.com/rhapsody008/sovereign-ai-demo \
       org.opencontainers.image.title=secure-intake \

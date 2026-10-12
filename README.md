@@ -114,3 +114,13 @@ The API never returns the full API key, and no endpoint serves the original phot
 The UI bundles [Space Grotesk](https://github.com/floriankarsten/space-grotesk) and
 [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) (both SIL Open Font License 1.1) in `web/fonts/`,
 so it needs no external CDN and works air-gapped.
+
+## Debugging in a pod
+
+The app image is `gcr.io/distroless/static-debian12:debug-nonroot`. It has no package manager or bash, but it
+includes a busybox shell:
+
+```sh
+kubectl -n sovereign-ai exec -it deploy/secure-intake -- /busybox/sh
+wget -qO- localhost:8080/piishield/api/status
+```
