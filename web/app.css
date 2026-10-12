@@ -50,7 +50,14 @@ button, input, select, textarea { font: inherit; }
 }
 .banner.blue { background: linear-gradient(100deg, #0B2A5C 0%, #1D4FA8 45%, #4C2A9E 100%); box-shadow: 0 0 40px rgba(47, 123, 234, .35); }
 .banner.orange { background: linear-gradient(100deg, #5A2306 0%, #C2620F 45%, #E58A1F 100%); box-shadow: 0 0 40px rgba(240, 138, 36, .4); }
-.banner.lost { background: linear-gradient(100deg, #2A2438, #3B3350); }
+.banner.lost {
+  background: linear-gradient(100deg, #4A0712 0%, #B3122E 45%, #E11D48 100%);
+  animation: lost-glow 1.2s ease-in-out infinite;
+}
+@keyframes lost-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(244, 63, 94, .35); }
+  50% { box-shadow: 0 0 55px rgba(244, 63, 94, .85); }
+}
 .banner-main { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; }
 .banner h1 { margin: 0; font-size: 1.85rem; font-weight: 700; letter-spacing: -.01em; }
 .banner h1 .shield { color: var(--accent-2); text-shadow: 0 0 18px rgba(34, 211, 238, .7); }
