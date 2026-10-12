@@ -1,0 +1,46 @@
+# Local rehearsal: SeaweedFS (S3 API) stands in for Nutanix Objects, mocknai for NAI.
+# Primary at http://localhost:8080, standby at http://localhost:8081 (same bucket).
+# The app creates the bucket on startup if it is missing.
+name: secure-intake
+
+services:
+  s3:
+    image: chrislusf/seaweedfs:latest
+    command: server -s3 -s3.config=/etc/seaweedfs/s3.json -dir=/data -ip.bind=0.0.0.0
+    volumes: ["./seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro"]
+    ports: ["8333:8333"]
+
+  mocknai:
+    build: { context: ../.., target: mocknai }
+    ports: ["9090:9090"]
+
+  app: &app
+    build: { context: ../.., target: app, args: { VERSION: local } }
+    restart: on-failure
+    environment: &appenv
+      CLUSTER_NAME: nkp-primary
+      CLUSTER_DISPLAY_NAME: Primary cluster
+      CLUSTER_ROLE: primary
+      POD_NAME: secure-intake-primary
+      S3_ENDPOINT: s3:8333
+      S3_USE_TLS: "false"
+      S3_BUCKET: secure-intake
+      S3_ACCESS_KEY: local
+      S3_SECRET_KEY: localsecret
+      # Override from your shell to rehearse against the real NAI endpoint.
+      NAI_BASE_URL: ${NAI_BASE_URL:-http://mocknai:9090/v1}
+      NAI_API_KEY: ${NAI_API_KEY:-sk-mock}
+      NAI_MODEL: ${NAI_MODEL:-mock-vision}
+      NAI_INSECURE_SKIP_VERIFY: ${NAI_INSECURE_SKIP_VERIFY:-false}
+    depends_on: [s3, mocknai]
+    ports: ["8080:8080"]
+
+  app-standby:
+    <<: *app
+    environment:
+      <<: *appenv
+      CLUSTER_NAME: nkp-standby
+      CLUSTER_DISPLAY_NAME: Standby cluster
+      CLUSTER_ROLE: standby
+      POD_NAME: secure-intake-standby
+    ports: ["8081:8080"]
