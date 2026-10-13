@@ -36,9 +36,17 @@ function setTile(id, state, main, sub) {
 
 // ---- Status polling ----
 
+// Status is polled every second; a poll that takes longer than this counts as
+// a lost connection, so a dead or hung pod shows up within 1–2 seconds.
+const STATUS_INTERVAL_MS = 1000;
+const STATUS_TIMEOUT_MS = 1500;
+let statusInFlight = false;
+
 async function pollStatus() {
+  if (statusInFlight) return; // don't stack polls while one is still waiting
+  statusInFlight = true;
   try {
-    const s = await api("api/status");
+    const s = await api("api/status", { signal: AbortSignal.timeout(STATUS_TIMEOUT_MS) });
     const c = s.connection;
     const banner = $("banner");
     banner.className = "banner " + (c.bannerColor === "orange" ? "orange" : "blue");
@@ -79,6 +87,8 @@ async function pollStatus() {
     banner.className = "banner lost";
     $("conn-label").textContent = "Connection lost";
     $("conn-name").textContent = "Waiting for the app…";
+  } finally {
+    statusInFlight = false;
   }
 }
 
@@ -405,5 +415,5 @@ async function loadRecords() {
 pollStatus();
 loadSettings();
 loadRecords();
-setInterval(pollStatus, 3000);
+setInterval(pollStatus, STATUS_INTERVAL_MS);
 setInterval(loadRecords, 10000);
