@@ -45,7 +45,7 @@ func (s *Server) Start(ctx context.Context) { go s.status.run(ctx) }
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", s.handleIndex)
-	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServerFS(s.web)))
+	mux.Handle("GET /static/", http.StripPrefix("/static/", noCacheAssets(http.FileServerFS(s.web))))
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { _, _ = io.WriteString(w, "ok") })
 	mux.HandleFunc("GET /readyz", s.handleReady)
 	mux.HandleFunc("GET /api/status", s.handleStatus)
@@ -78,6 +78,19 @@ func (s *Server) logRequests(next http.Handler) http.Handler {
 			return // polled constantly; keep logs readable
 		}
 		s.log.Info("http", "method", r.Method, "path", r.URL.Path, "code", sw.code, "ms", time.Since(start).Milliseconds())
+	})
+}
+
+// noCacheAssets makes browsers revalidate CSS/JS on every load, so a new rollout
+// is picked up without a hard refresh. Fonts never change and stay cacheable.
+func noCacheAssets(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, ".css") || strings.HasSuffix(r.URL.Path, ".js") {
+			w.Header().Set("Cache-Control", "no-cache")
+		} else {
+			w.Header().Set("Cache-Control", "public, max-age=86400")
+		}
+		next.ServeHTTP(w, r)
 	})
 }
 
