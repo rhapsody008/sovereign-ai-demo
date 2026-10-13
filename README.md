@@ -124,3 +124,16 @@ includes a busybox shell:
 kubectl -n sovereign-ai exec -it deploy/secure-intake -- /busybox/sh
 wget -qO- localhost:8080/piishield/api/status
 ```
+
+## HPA stress test
+
+The image includes `/stress.sh`. It starts busy-loop workers, each pinning one CPU core. They keep running until you
+stop them or the pod is deleted, even after you exit the `exec` session:
+
+```sh
+kubectl -n sovereign-ai exec deploy/secure-intake -- /stress.sh      # 1 worker (≈1000m, 10× the 100m request)
+kubectl -n sovereign-ai exec deploy/secure-intake -- /stress.sh 2    # 2 workers
+kubectl -n sovereign-ai exec deploy/secure-intake -- /stress.sh status
+kubectl -n sovereign-ai exec deploy/secure-intake -- /stress.sh stop
+kubectl -n sovereign-ai get hpa secure-intake -w                     # watch it scale
+```

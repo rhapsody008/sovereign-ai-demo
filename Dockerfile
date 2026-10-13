@@ -30,6 +30,8 @@ LABEL org.opencontainers.image.source=https://github.com/rhapsody008/sovereign-a
       org.opencontainers.image.description="Secure Intake (PII Shield) - Sovereign AI demo" \
       org.opencontainers.image.version=${VERSION}
 COPY --from=build /out/server /server
+# CPU stress helper for the HPA demo: kubectl exec ... -- /stress.sh
+COPY --chmod=0755 scripts/stress.sh /stress.sh
 USER nonroot
 EXPOSE 8080
 ENTRYPOINT ["/server"]
