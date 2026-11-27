@@ -6,6 +6,8 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	"github.com/rhapsody008/sovereign-ai-demo/internal/kube"
 )
 
 type naiStatus struct {
@@ -29,27 +31,44 @@ type storageStatus struct {
 }
 
 // statusCache refreshes NAI and storage probes in the background every 5s so
-// /api/status always answers instantly with the last known values.
+// /api/status always answers instantly with the last known values. In a cluster
+// the app pod count is probed separately every 2s.
 type statusCache struct {
 	s       *Server
 	mu      sync.RWMutex
 	n       naiStatus
 	st      storageStatus
+	kube    *kube.Client // nil outside a cluster
+	pods    int
+	podsErr string
 	kick    chan struct{}
 	started time.Time
 }
 
 func newStatusCache(s *Server) *statusCache {
-	return &statusCache{
+	c := &statusCache{
 		s:       s,
 		kick:    make(chan struct{}, 1),
 		started: time.Now(),
 		st:      storageStatus{Backend: s.store.Backend(), Error: "checking…"},
 		n:       naiStatus{Error: "checking…"},
+		podsErr: "checking…",
 	}
+	if inCluster() {
+		kc, err := kube.InCluster()
+		if err != nil {
+			c.podsErr = err.Error()
+		} else {
+			c.kube = kc
+		}
+	}
+	return c
 }
 
+func inCluster() bool { return os.Getenv("KUBERNETES_SERVICE_HOST") != "" }
+
 func (c *statusCache) run(ctx context.Context) {
+	go c.runPods(ctx)
 	t := time.NewTicker(5 * time.Second)
 	defer t.Stop()
 	for {
@@ -63,6 +82,37 @@ func (c *statusCache) run(ctx context.Context) {
 			return
 		case <-t.C:
 		case <-c.kick:
+		}
+	}
+}
+
+func (c *statusCache) probePods(ctx context.Context) {
+	ctx, cancel := context.WithTimeout(ctx, 1500*time.Millisecond)
+	defer cancel()
+	n, err := c.kube.CountReadyPods(ctx, c.s.cfg.PodNamespace, c.s.cfg.PodSelector)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if err != nil {
+		c.podsErr = err.Error()
+		return
+	}
+	c.pods, c.podsErr = n, ""
+}
+
+// runPods refreshes the app pod count quickly: the UI polls every second and
+// the self-healing demo wants the number to change within a couple of seconds.
+func (c *statusCache) runPods(ctx context.Context) {
+	if c.kube == nil {
+		return
+	}
+	t := time.NewTicker(2 * time.Second)
+	defer t.Stop()
+	for {
+		c.probePods(ctx)
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
 		}
 	}
 }
@@ -139,18 +189,18 @@ func (c *statusCache) storage() storageStatus {
 
 func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	s.status.mu.RLock()
-	n, st := s.status.n, s.status.st
+	n, st, pods, podsErr := s.status.n, s.status.st, s.status.pods, s.status.podsErr
 	s.status.mu.RUnlock()
 
 	cfg := s.cfg
-	// Cluster tile is demo-only: values come from env, no Kubernetes API calls.
+	// The cluster tile keeps fake node/HPA values; the app pod count is live.
 	cluster := map[string]any{"mode": "local", "healthy": true, "error": ""}
-	if os.Getenv("KUBERNETES_SERVICE_HOST") != "" {
+	if inCluster() {
 		cluster = map[string]any{
-			"mode": "in-cluster", "healthy": true,
+			"mode": "in-cluster", "healthy": podsErr == "" && pods >= 1,
 			"nodesReady": cfg.FakeNodesTotal, "nodesTotal": cfg.FakeNodesTotal,
-			"podsReady": cfg.FakePodsReady, "hpaCurrent": cfg.FakePodsReady, "hpaMax": cfg.FakeHPAMax,
-			"namespace": cfg.PodNamespace, "error": "",
+			"podsReady": pods, "hpaMax": cfg.FakeHPAMax,
+			"namespace": cfg.PodNamespace, "error": podsErr,
 		}
 	}
 	writeJSON(w, 200, map[string]any{

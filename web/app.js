@@ -63,7 +63,7 @@ async function pollStatus() {
       setTile("tile-cluster", "warn", "Status unavailable", k.error);
     } else {
       setTile("tile-cluster", k.healthy ? "ok" : "err", k.healthy ? "Healthy" : "Degraded",
-        `${k.nodesReady}/${k.nodesTotal} nodes ready · app pods ${k.hpaCurrent} (max ${k.hpaMax})`);
+        `${k.nodesReady}/${k.nodesTotal} nodes ready · app pods ${k.podsReady} ready (max ${k.hpaMax})`);
     }
 
     const n = s.nai;

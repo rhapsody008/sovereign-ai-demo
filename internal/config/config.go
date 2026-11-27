@@ -21,10 +21,10 @@ type Config struct {
 	PodName            string
 	NodeName           string
 	PodNamespace       string
+	PodSelector        string // label selector for the app pods counted on the cluster tile
 
 	// Demo-only cluster tile values (no Kubernetes API calls are made).
 	FakeNodesTotal int
-	FakePodsReady  int
 	FakeHPAMax     int
 
 	S3Endpoint           string
@@ -55,6 +55,7 @@ func Load() (*Config, error) {
 		PodName:      env("POD_NAME", host),
 		NodeName:     env("NODE_NAME", ""),
 		PodNamespace: env("POD_NAMESPACE", ""),
+		PodSelector:  env("POD_SELECTOR", "app=secure-intake"),
 
 		S3Endpoint:  env("S3_ENDPOINT", ""),
 		S3Bucket:    env("S3_BUCKET", "secure-intake"),
@@ -103,7 +104,6 @@ func Load() (*Config, error) {
 	c.SeedSamples = parseBool("SEED_SAMPLE_RECORDS", true)
 	c.MaxUploadMB = parseInt("MAX_UPLOAD_MB", 8)
 	c.FakeNodesTotal = parseInt("DEMO_NODES", 3)
-	c.FakePodsReady = parseInt("DEMO_PODS", 2)
 	c.FakeHPAMax = parseInt("DEMO_HPA_MAX", 8)
 
 	d, err := time.ParseDuration(env("NAI_TIMEOUT", "60s"))

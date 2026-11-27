@@ -13,7 +13,7 @@ This build is **demo-scoped**:
 | Objects (S3) storage: settings, records, photos, thumbnails | **Real** (shared by both clusters) |
 | PII masking and regex backstop (email, NRIC/FIN, SG phone) | Real, deterministic |
 | Unparsable model output | Falls back to a locally built result, so the demo does not stall |
-| NKP cluster tile | **Faked** from `DEMO_NODES` / `DEMO_PODS` / `DEMO_HPA_MAX`; no Kubernetes API calls, so no RBAC is needed |
+| NKP cluster tile | App pod count is **real**, read from the Kubernetes API (pods matching `POD_SELECTOR`); node and HPA-max values are still faked from `DEMO_NODES` / `DEMO_HPA_MAX` |
 | Sample records | 3 fake pre-masked records are written when the bucket is empty (primary only; `SEED_SAMPLE_RECORDS=false` disables this) |
 | Prometheus metrics, `/api/burn` | Not included |
 
@@ -75,13 +75,33 @@ See [.env.example](.env.example) for every variable. The main ones:
 | `CLUSTER_NAME` / `CLUSTER_DISPLAY_NAME` | `local` | Shown in the banner and stored on each record |
 | `CLUSTER_ROLE` | `primary` | `standby` turns the banner orange |
 | `POD_NAME`, `NODE_NAME`, `POD_NAMESPACE` | hostname | Set them with the Downward API |
+| `POD_SELECTOR` | `app=secure-intake` | Label selector for the app pods counted on the cluster tile |
 | `S3_ENDPOINT` | — | Objects `host:port`. If empty, the app uses an in-memory store |
 | `S3_USE_TLS`, `S3_INSECURE_SKIP_VERIFY` | `true`, `false` | Set skip-verify for self-signed Objects certs |
 | `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_REGION` | `secure-intake`, —, —, `us-east-1` | The app creates the bucket if it is missing |
 | `NAI_BASE_URL`, `NAI_API_KEY`, `NAI_MODEL` | — | Fallback only. Settings saved in the bucket take precedence |
 | `NAI_TIMEOUT`, `NAI_INSECURE_SKIP_VERIFY` | `60s`, `false` | |
 | `ADMIN_TOKEN` | — | If set, saving NAI settings asks for this token |
-| `DEMO_NODES`, `DEMO_PODS`, `DEMO_HPA_MAX` | `3`, `2`, `8` | Fake values for the cluster tile |
+| `DEMO_NODES`, `DEMO_HPA_MAX` | `3`, `8` | Fake node and HPA-max values for the cluster tile; the pod count is live |
+
+### Kubernetes permissions
+
+The cluster tile counts app pods through the Kubernetes API. The pod needs a mounted service-account token and a
+`ServiceAccount` bound to a namespaced `Role` that allows `list` on `pods` (core API group) in its own namespace:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: secure-intake-pod-reader
+  namespace: sovereign-ai
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list"]
+```
+
+Without that permission the tile shows "Status unavailable" with the API's 403 error; the rest of the app keeps working.
 
 ## Demo inputs
 
